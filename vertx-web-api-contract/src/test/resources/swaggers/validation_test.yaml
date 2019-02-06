@@ -269,6 +269,27 @@ paths:
       responses:
         default:
           description: ok
+  /jsonQueryParam:
+    get:
+      operationId: jsonQueryParam
+      parameters:
+        - name: jsonParam
+          in: query
+          required: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  values:
+                    type: array
+                    items:
+                      type: integer
+      responses:
+        default:
+          description: ok
   /jsonBodyWithDate:
     post:
       operationId: jsonBodyWithDate

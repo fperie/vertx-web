@@ -779,4 +779,58 @@ public class OpenAPI3ValidationTest extends WebTestValidationBase {
 
   }
 
+  @Test
+  public void testQueryParamAsJson() throws Exception {
+    Operation op = testSpec.getPaths().get("/jsonQueryParam").getGet();
+    OpenAPI3RequestValidationHandler validationHandler = new OpenAPI3RequestValidationHandlerImpl(op, op.getParameters(), testSpec, refsCache);
+    loadHandlers("/jsonQueryParam", HttpMethod.GET, false, validationHandler, routingContext -> {
+      RequestParameters params = routingContext.get("parsedParameters");
+
+      RequestParameter jsonParam = params.queryParameter("jsonParam");
+      assertNotNull(jsonParam);
+      assertTrue(jsonParam.isJsonObject());
+
+      routingContext.response()
+        .setStatusCode(200)
+        .setStatusMessage("OK")
+        .putHeader("content-type", "application/json")
+        .end(jsonParam.getJsonObject().encode());
+    });
+
+    JsonObject obj = new JsonObject().put("id", "aaa").put("values", new JsonArray().add(10).add(20).add(30));
+
+    QueryStringEncoder queryStringEncoder = new QueryStringEncoder("/jsonQueryParam");
+    queryStringEncoder.addParam("jsonParam", obj.encode());
+
+    testEmptyRequestWithJSONObjectResponse(HttpMethod.GET, queryStringEncoder.toString(), 200, "OK", obj);
+
+  }
+
+  @Test
+  public void testQueryParamAsJsonFailure() throws Exception {
+    Operation op = testSpec.getPaths().get("/jsonQueryParam").getGet();
+    OpenAPI3RequestValidationHandler validationHandler = new OpenAPI3RequestValidationHandlerImpl(op, op.getParameters(), testSpec, refsCache);
+    loadHandlers("/jsonQueryParam", HttpMethod.GET, true, validationHandler, routingContext -> {
+      RequestParameters params = routingContext.get("parsedParameters");
+
+      RequestParameter jsonParam = params.queryParameter("jsonParam");
+      assertNotNull(jsonParam);
+      assertTrue(jsonParam.isJsonObject());
+
+      routingContext.response()
+        .setStatusCode(200)
+        .setStatusMessage("OK")
+        .putHeader("content-type", "application/json")
+        .end(jsonParam.getJsonObject().encode());
+    });
+
+    JsonObject obj = new JsonObject().put("id", "aaa").put("values", new JsonArray().add(10).add(20).add("error"));
+
+    QueryStringEncoder queryStringEncoder = new QueryStringEncoder("/jsonQueryParam");
+    queryStringEncoder.addParam("jsonParam", obj.encode());
+
+    testRequest(HttpMethod.GET, queryStringEncoder.toString(), 400, errorMessage(ValidationException.ErrorType.JSON_INVALID));
+
+  }
+
 }
